@@ -25,6 +25,7 @@
     "sameAs": ["https://github.com/killercats1"]
   }
   </script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js" defer></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js" defer></script>
   <style>
     :root {
@@ -56,6 +57,17 @@
     .login-button:focus-visible, .back-button:focus-visible, .site-mark:focus-visible, .github-link:focus-visible { outline: 2px solid var(--accent); outline-offset: 4px; }
     .login-main h1 { font-size: clamp(2.4rem, 7vw, 4rem); }
     .login-note { margin-top: 1rem; font-size: .95rem; }
+    .cat-stage { width: min(220px, 62vw); height: 170px; margin: .25rem auto .5rem; pointer-events: none; visibility: hidden; }
+    .cat-stage.is-ready { visibility: visible; }
+    #voxel-cat { display: block; width: 100%; height: 100%; image-rendering: pixelated; }
+    .pixel-mouse { position: fixed; top: 0; left: 0; z-index: 30; width: 32px; height: 32px; pointer-events: none; visibility: hidden; image-rendering: pixelated; shape-rendering: crispEdges; will-change: transform; }
+    .pixel-mouse.is-visible { visibility: visible; }
+    .pixel-mouse.is-clicking { animation: mouse-click-bounce 160ms steps(2, end); }
+    body.has-pixel-mouse, body.has-pixel-mouse * { cursor: none !important; }
+    body.is-transitioning .pixel-mouse { visibility: hidden; }
+    @keyframes mouse-click-bounce { 50% { scale: .78; } }
+    @media (max-width: 480px) { .cat-stage { width: 165px; height: 135px; margin: .1rem auto .25rem; } }
+    @media (prefers-reduced-motion: reduce) { .pixel-mouse.is-clicking { animation: none; } }
     .particle-overlay { position: fixed; inset: 0; z-index: 10; width: 100vw; height: 100vh; pointer-events: auto; }
     .visually-hidden { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
     @media (max-width: 480px) {
@@ -83,6 +95,9 @@
     <a class="site-mark" href="/" aria-label="KCats Studios home"><img src="/assets/kcats-studios-logo.png?v=transparent-2" alt="KCats Studios cat-and-S logo" width="628" height="335" decoding="async"></a>
     <main aria-labelledby="home-title">
       <div class="badge">Indie experiments &amp; tiny games</div>
+      <div class="cat-stage" id="cat-stage" role="img" aria-label="Interactive voxel tuxedo cat whose eyes follow the pointer">
+        <canvas id="voxel-cat" aria-hidden="true"></canvas>
+      </div>
       <h1 id="home-title"><span>KCats Studios</span></h1>
       <p>KCats Studios creates creative projects, games, experiments, and digital experiences.</p>
       <button class="login-button" type="button" data-open-login>Login</button>
@@ -90,6 +105,14 @@
     </main>
     <a class="github-link" href="https://github.com/killercats1">GitHub</a>
   </section>
+  <svg class="pixel-mouse" id="pixel-mouse" viewBox="0 0 32 32" aria-hidden="true" focusable="false">
+    <path d="M10 20H8v2H6v2H4v2H2" fill="none" stroke="#c5cbd2" stroke-width="2" shape-rendering="crispEdges"/>
+    <path d="M10 15h2v-4h3V8h4V6h4v2h3v3h2v7h-2v4h-3v2h-9v-2h-3v-3h-1z" fill="#818994" shape-rendering="crispEdges"/>
+    <path d="M13 11h2V8h3v4h-3v2h-2zM20 8h3v4h-3z" fill="#eef0f2" shape-rendering="crispEdges"/>
+    <path d="M21 14h2v2h-2z" fill="#101217" shape-rendering="crispEdges"/>
+    <path d="M26 15h3v2h-3z" fill="#e8284d" shape-rendering="crispEdges"/>
+    <path d="M13 19h2v2h-2zM16 21h5v2h-5z" fill="#aeb5bd" shape-rendering="crispEdges"/>
+  </svg>
   <div class="visually-hidden" id="transition-status" role="status" aria-live="polite"></div>
 
   <script>
@@ -183,6 +206,7 @@
             canvas.style.pointerEvents = 'none';
             canvas.remove();
             transitionRunning = false;
+            document.body.classList.remove('is-transitioning');
             const focusTarget = next.querySelector('[data-focus]') || next.querySelector('button');
             if (focusTarget) focusTarget.focus({ preventScroll: true });
           }
@@ -193,6 +217,7 @@
       async function switchScreen(next, current) {
         if (transitionRunning) return;
         transitionRunning = true;
+        document.body.classList.add('is-transitioning');
         status.textContent = '';
         const triggers = document.querySelectorAll('[data-open-login], [data-show-home]');
         triggers.forEach((trigger) => { trigger.disabled = true; });
@@ -200,6 +225,7 @@
         if (reducedMotion.matches) {
           activateScreen(next, current);
           transitionRunning = false;
+          document.body.classList.remove('is-transitioning');
           triggers.forEach((trigger) => { trigger.disabled = false; });
           const focusTarget = next.querySelector('[data-focus]') || next.querySelector('button');
           if (focusTarget) focusTarget.focus({ preventScroll: true });
@@ -235,6 +261,7 @@
           console.error('Unable to capture the screen for the particle dissolve:', error);
           activateScreen(next, current);
           transitionRunning = false;
+          document.body.classList.remove('is-transitioning');
           triggers.forEach((trigger) => { trigger.disabled = false; });
           status.textContent = 'The pixel dissolve could not start, so the screen changed without animation.';
           const focusTarget = next.querySelector('[data-focus]') || next.querySelector('button');
@@ -246,5 +273,270 @@
       document.querySelector('[data-show-home]').addEventListener('click', () => switchScreen(home, login));
     })();
   </script>
+  <script>
+    (() => {
+      const pointer = document.getElementById('pixel-mouse');
+      const finePointer = window.matchMedia('(hover: hover) and (pointer: fine)');
+      const touchAvailable = navigator.maxTouchPoints > 0;
+      const pointerEnabled = finePointer.matches && !touchAvailable;
+      const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+      const mouse = { x: window.innerWidth / 2, y: window.innerHeight / 2, inside: false };
+      const cursor = { x: mouse.x, y: mouse.y };
+      const voxelCanvas = document.getElementById('voxel-cat');
+      let renderer = null;
+      let camera = null;
+      let head = null;
+      let leftPupil = null;
+      let rightPupil = null;
+      let previousTime = performance.now();
+      let animationFrame = 0;
+      const homeScreen = document.getElementById('home-screen');
+
+      if (pointerEnabled && pointer) {
+        document.body.classList.add('has-pixel-mouse');
+        window.addEventListener('pointermove', (event) => {
+          if (event.pointerType !== 'mouse' && event.pointerType !== 'pen') return;
+          mouse.x = event.clientX;
+          mouse.y = event.clientY;
+          mouse.inside = true;
+          pointer.classList.add('is-visible');
+        }, { passive: true });
+        window.addEventListener('pointerleave', () => {
+          mouse.inside = false;
+          pointer.classList.remove('is-visible');
+        });
+        window.addEventListener('pointerdown', () => {
+          pointer.classList.remove('is-clicking');
+          void pointer.offsetWidth;
+          pointer.classList.add('is-clicking');
+        });
+        pointer.addEventListener('animationend', () => pointer.classList.remove('is-clicking'));
+      }
+
+      function addVoxel(list, x, y, z, color) {
+        list.push({ x, y, z, color });
+      }
+
+      function makeVoxelMesh(THREE, group, voxels, materials, cell) {
+        const groups = new Map();
+        const seen = new Set();
+        for (const voxel of voxels) {
+          const key = `${voxel.x}:${voxel.y}:${voxel.z}:${voxel.color}`;
+          if (seen.has(key)) continue;
+          seen.add(key);
+          if (!groups.has(voxel.color)) groups.set(voxel.color, []);
+          groups.get(voxel.color).push(voxel);
+        }
+        const geometry = new THREE.BoxGeometry(cell * 0.94, cell * 0.94, cell * 0.94);
+        for (const [color, items] of groups) {
+          const material = materials[color];
+          const mesh = new THREE.InstancedMesh(geometry, material, items.length);
+          mesh.instanceMatrix.setUsage(THREE.StaticDrawUsage);
+          const matrix = new THREE.Matrix4();
+          const position = new THREE.Vector3();
+          const rotation = new THREE.Quaternion();
+          const scale = new THREE.Vector3(1, 1, 1);
+          items.forEach((voxel, index) => {
+            position.set(voxel.x * cell, voxel.y * cell, voxel.z);
+            matrix.compose(position, rotation, scale);
+            mesh.setMatrixAt(index, matrix);
+          });
+          mesh.computeBoundingSphere();
+          group.add(mesh);
+        }
+      }
+
+      function createVoxelCat(THREE) {
+        const stage = document.getElementById('cat-stage');
+        const scene = new THREE.Scene();
+        camera = new THREE.PerspectiveCamera(32, 1, 0.1, 50);
+        camera.position.set(0, 0, 7.7);
+        renderer = new THREE.WebGLRenderer({
+          canvas: voxelCanvas,
+          alpha: true,
+          antialias: false,
+          preserveDrawingBuffer: true,
+          powerPreference: 'low-power'
+        });
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.5));
+        renderer.setClearColor(0x000000, 0);
+        if ('outputColorSpace' in renderer && THREE.SRGBColorSpace) renderer.outputColorSpace = THREE.SRGBColorSpace;
+
+        scene.add(new THREE.AmbientLight(0xffffff, 1.7));
+        const keyLight = new THREE.DirectionalLight(0xffffff, 2.3);
+        keyLight.position.set(-3, 5, 7);
+        scene.add(keyLight);
+        const fillLight = new THREE.DirectionalLight(0x89b8ca, 0.7);
+        fillLight.position.set(4, -2, 4);
+        scene.add(fillLight);
+
+        const cell = 0.17;
+        const fur = new THREE.MeshStandardMaterial({ color: 0x111318, roughness: 1, metalness: 0 });
+        const furLight = new THREE.MeshStandardMaterial({ color: 0x2a2d34, roughness: 1, metalness: 0 });
+        const white = new THREE.MeshStandardMaterial({ color: 0xf1f1ed, roughness: 1, metalness: 0 });
+        const socket = new THREE.MeshStandardMaterial({ color: 0x260b13, roughness: 1, metalness: 0 });
+        const socketEdge = new THREE.MeshStandardMaterial({ color: 0x43101d, roughness: 1, metalness: 0 });
+        const red = new THREE.MeshStandardMaterial({ color: 0xf01943, emissive: 0x9c001e, emissiveIntensity: 1.2, roughness: 0.55 });
+        const redLight = new THREE.MeshStandardMaterial({ color: 0xff526a, emissive: 0xff123e, emissiveIntensity: 1.8, roughness: 0.4 });
+        const ink = new THREE.MeshStandardMaterial({ color: 0x07080b, roughness: 1, metalness: 0 });
+        const materials = { fur, furLight, white, socket, socketEdge, red, redLight, ink };
+        const silhouette = [];
+        const face = [];
+        const pupilGroups = [];
+        const rows = [
+          [10, -8, -7], [9, -9, -7], [8, -10, -6], [7, -10, -5],
+          [6, -10, -4], [5, -10, -3], [4, -9, -3]
+        ];
+        for (const [y, leftMin, leftMax] of rows) {
+          for (let x = leftMin; x <= leftMax; x++) {
+            addVoxel(silhouette, x, y, 0, 'fur');
+            addVoxel(silhouette, -x, y, 0, 'fur');
+          }
+        }
+        const headRows = [
+          [4, -7, 7], [3, -8, 8], [2, -9, 9], [1, -10, 10],
+          [0, -11, 11], [-1, -11, 11], [-2, -11, 11], [-3, -11, 11],
+          [-4, -11, 11], [-5, -10, 10], [-6, -9, 9], [-7, -7, 7], [-8, -5, 5]
+        ];
+        for (const [y, left, right] of headRows) {
+          for (let x = left; x <= right; x++) addVoxel(silhouette, x, y, 0, 'fur');
+        }
+
+        const leftEar = [[8, -8, -7], [7, -9, -7], [6, -9, -6], [5, -8, -6]];
+        for (const [y, left, right] of leftEar) {
+          for (let x = left; x <= right; x++) {
+            addVoxel(face, x, y, 0.095, 'white');
+            addVoxel(face, -x, y, 0.095, 'white');
+          }
+        }
+        for (let x = -3; x <= 3; x++) addVoxel(face, x, 3, 0.095, 'furLight');
+        for (const y of [2, 1, -1, -2]) {
+          addVoxel(face, -10, y, 0.095, 'furLight');
+          addVoxel(face, 10, y, 0.095, 'furLight');
+        }
+        for (const y of [-3, -4]) {
+          for (const x of [-10, -9, 9, 10]) addVoxel(face, x, y, 0.095, 'furLight');
+        }
+
+        for (const centerX of [-5, 5]) {
+          for (let y = -1; y <= 1; y++) {
+            for (let x = centerX - 2; x <= centerX + 2; x++) addVoxel(face, x, y, 0.105, 'socket');
+          }
+          addVoxel(face, centerX - 2, 2, 0.105, 'socketEdge');
+          addVoxel(face, centerX - 1, 2, 0.105, 'socketEdge');
+          addVoxel(face, centerX + 1, 2, 0.105, 'socketEdge');
+          addVoxel(face, centerX + 2, 2, 0.105, 'socketEdge');
+          const pupil = centerX < 0 ? leftPupil = new THREE.Group() : rightPupil = new THREE.Group();
+          pupil.position.set(centerX * cell, 0, 0.205);
+          pupilGroups.push(pupil);
+          const eyePattern = [
+            [-1, 1, 'red'], [0, 1, 'redLight'], [1, 1, 'red'],
+            [-1, 0, 'red'], [0, 0, 'redLight'], [1, 0, 'red'],
+            [-1, -1, 'red'], [0, -1, 'red'], [1, -1, 'red']
+          ];
+          makeVoxelMesh(THREE, pupil, eyePattern.map(([x, y, color]) => ({ x, y, z: 0, color })), materials, cell * 0.72);
+        }
+
+        for (let y = -3; y >= -5; y--) {
+          const extent = y === -3 ? 2 : 4;
+          for (let x = -extent; x <= extent; x++) {
+            if (x !== 0 || y <= -4) addVoxel(face, x, y, 0.105, 'white');
+          }
+        }
+        for (let x = -3; x <= 3; x++) addVoxel(face, x, -6, 0.105, 'white');
+        for (let x = -1; x <= 1; x++) addVoxel(face, x, -2, 0.115, 'white');
+        addVoxel(face, 0, -2, 0.205, 'ink');
+        addVoxel(face, -1, -3, 0.205, 'ink');
+        addVoxel(face, 1, -3, 0.205, 'ink');
+        addVoxel(face, 0, -4, 0.205, 'ink');
+        for (const x of [-2, -1, 1, 2]) addVoxel(face, x, -4, 0.205, 'ink');
+        addVoxel(face, -2, -3, 0.205, 'ink');
+        addVoxel(face, 2, -3, 0.205, 'ink');
+        makeVoxelMesh(THREE, scene, silhouette, materials, cell);
+        makeVoxelMesh(THREE, scene, face, materials, cell);
+
+        head = new THREE.Group();
+        const voxelMeshes = scene.children.filter((child) => child.isInstancedMesh);
+        for (const mesh of voxelMeshes) {
+          scene.remove(mesh);
+          head.add(mesh);
+        }
+        for (const pupil of pupilGroups) {
+          scene.remove(pupil);
+          head.add(pupil);
+        }
+        scene.add(head);
+        stage.classList.add('is-ready');
+
+        function resize() {
+          const bounds = stage.getBoundingClientRect();
+          if (!bounds.width || !bounds.height) return;
+          renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, window.matchMedia('(pointer: coarse)').matches ? 1.25 : 1.5));
+          renderer.setSize(bounds.width, bounds.height, false);
+          camera.aspect = bounds.width / bounds.height;
+          camera.updateProjectionMatrix();
+        }
+        if ('ResizeObserver' in window) new ResizeObserver(resize).observe(stage);
+        else window.addEventListener('resize', resize, { passive: true });
+        resize();
+
+        return function render(now, delta) {
+          const normalizedX = mouse.inside ? (mouse.x / Math.max(1, window.innerWidth) - 0.5) * 2 : 0;
+          const normalizedY = mouse.inside ? (mouse.y / Math.max(1, window.innerHeight) - 0.5) * 2 : 0;
+          const easing = 1 - Math.exp(-delta / 150);
+          const targetRotationY = reduceMotion.matches ? 0 : -normalizedX * 0.22;
+          const targetRotationX = reduceMotion.matches ? 0 : normalizedY * 0.16;
+          head.rotation.y += (targetRotationY - head.rotation.y) * easing;
+          head.rotation.x += (targetRotationX - head.rotation.x) * easing;
+          const idle = reduceMotion.matches ? 0 : Math.sin(now / 900) * 0.055;
+          head.position.y += (idle - head.position.y) * easing;
+          const eyeOffsetX = mouse.inside ? normalizedX * cell * 1.2 : 0;
+          const eyeOffsetY = mouse.inside ? -normalizedY * cell * 0.9 : 0;
+          for (const [pupil, direction] of [[leftPupil, -1], [rightPupil, 1]]) {
+            const targetX = direction * 5 * cell + eyeOffsetX;
+            const targetY = eyeOffsetY;
+            pupil.position.x += (targetX - pupil.position.x) * easing;
+            pupil.position.y += (targetY - pupil.position.y) * easing;
+          }
+          renderer.render(scene, camera);
+        };
+      }
+
+      let renderCat = null;
+      function initializeVoxelCat() {
+        if (!voxelCanvas) return;
+        if (typeof window.THREE === 'undefined') {
+          console.error('Three.js did not load; the interactive voxel cat is unavailable.');
+          return;
+        }
+        try {
+          renderCat = createVoxelCat(window.THREE);
+        } catch (error) {
+          console.error('Unable to initialize the interactive voxel cat:', error);
+        }
+      }
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initializeVoxelCat, { once: true });
+      } else {
+        initializeVoxelCat();
+      }
+
+      function animate(now) {
+        const delta = Math.min(50, Math.max(1, now - previousTime));
+        previousTime = now;
+        if (pointerEnabled && pointer && mouse.inside) {
+          const easing = 1 - Math.exp(-delta / 32);
+          cursor.x += (mouse.x - cursor.x) * easing;
+          cursor.y += (mouse.y - cursor.y) * easing;
+          pointer.style.transform = `translate3d(${cursor.x}px, ${cursor.y}px, 0) translate(-27px, -16px)`;
+        }
+        if (renderCat && homeScreen && !homeScreen.hidden) renderCat(now, delta);
+        animationFrame = window.requestAnimationFrame(animate);
+      }
+      animationFrame = window.requestAnimationFrame(animate);
+      window.addEventListener('pagehide', () => window.cancelAnimationFrame(animationFrame), { once: true });
+    })();
+  </script>
+
 </body>
 </html>
