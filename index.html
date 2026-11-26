@@ -286,8 +286,6 @@
       let renderer = null;
       let camera = null;
       let head = null;
-      let leftPupil = null;
-      let rightPupil = null;
       let previousTime = performance.now();
       let animationFrame = 0;
       const homeScreen = document.getElementById('home-screen');
@@ -387,6 +385,7 @@
         const silhouette = [];
         const face = [];
         const pupilGroups = [];
+        const pupilScale = 0.65;
         const rows = [
           [10, -8, -7], [9, -9, -7], [8, -10, -6], [7, -10, -5],
           [6, -10, -4], [5, -10, -3], [4, -9, -3]
@@ -423,22 +422,20 @@
         }
 
         for (const centerX of [-5, 5]) {
-          for (let y = -1; y <= 1; y++) {
+          for (let y = -2; y <= 2; y++) {
             for (let x = centerX - 2; x <= centerX + 2; x++) addVoxel(face, x, y, 0.105, 'socket');
           }
-          addVoxel(face, centerX - 2, 2, 0.105, 'socketEdge');
-          addVoxel(face, centerX - 1, 2, 0.105, 'socketEdge');
-          addVoxel(face, centerX + 1, 2, 0.105, 'socketEdge');
-          addVoxel(face, centerX + 2, 2, 0.105, 'socketEdge');
-          const pupil = centerX < 0 ? leftPupil = new THREE.Group() : rightPupil = new THREE.Group();
-          pupil.position.set(centerX * cell, 0, 0.205);
-          pupilGroups.push(pupil);
+          for (const offsetX of [-2, -1, 1, 2]) addVoxel(face, centerX + offsetX, 3, 0.105, 'socketEdge');
+          const pupil = new THREE.Group();
+          const baseX = centerX * cell;
+          pupil.position.set(baseX, 0, 0.245);
+          pupilGroups.push([pupil, baseX]);
           const eyePattern = [
             [-1, 1, 'red'], [0, 1, 'redLight'], [1, 1, 'red'],
             [-1, 0, 'red'], [0, 0, 'redLight'], [1, 0, 'red'],
             [-1, -1, 'red'], [0, -1, 'red'], [1, -1, 'red']
           ];
-          makeVoxelMesh(THREE, pupil, eyePattern.map(([x, y, color]) => ({ x, y, z: 0, color })), materials, cell * 0.72);
+          makeVoxelMesh(THREE, pupil, eyePattern.map(([x, y, color]) => ({ x, y, z: 0, color })), materials, cell * pupilScale);
         }
 
         for (let y = -3; y >= -5; y--) {
@@ -465,7 +462,7 @@
           scene.remove(mesh);
           head.add(mesh);
         }
-        for (const pupil of pupilGroups) {
+        for (const [pupil] of pupilGroups) {
           scene.remove(pupil);
           head.add(pupil);
         }
@@ -485,20 +482,16 @@
         resize();
 
         return function render(now, delta) {
-          const normalizedX = mouse.inside ? (mouse.x / Math.max(1, window.innerWidth) - 0.5) * 2 : 0;
-          const normalizedY = mouse.inside ? (mouse.y / Math.max(1, window.innerHeight) - 0.5) * 2 : 0;
+          const normalizedX = mouse.inside ? Math.max(-1, Math.min(1, mouse.x / Math.max(1, window.innerWidth) * 2 - 1)) : 0;
+          const normalizedY = mouse.inside ? Math.max(-1, Math.min(1, 1 - mouse.y / Math.max(1, window.innerHeight) * 2)) : 0;
           const easing = 1 - Math.exp(-delta / 150);
-          const targetRotationY = reduceMotion.matches ? 0 : -normalizedX * 0.22;
-          const targetRotationX = reduceMotion.matches ? 0 : normalizedY * 0.16;
-          head.rotation.y += (targetRotationY - head.rotation.y) * easing;
-          head.rotation.x += (targetRotationX - head.rotation.x) * easing;
           const idle = reduceMotion.matches ? 0 : Math.sin(now / 900) * 0.055;
           head.position.y += (idle - head.position.y) * easing;
-          const eyeOffsetX = mouse.inside ? normalizedX * cell * 1.2 : 0;
-          const eyeOffsetY = mouse.inside ? -normalizedY * cell * 0.9 : 0;
-          for (const [pupil, direction] of [[leftPupil, -1], [rightPupil, 1]]) {
-            const targetX = direction * 5 * cell + eyeOffsetX;
-            const targetY = eyeOffsetY;
+          const pupilTravelX = cell * 0.85;
+          const pupilTravelY = cell * 0.7;
+          for (const [pupil, baseX] of pupilGroups) {
+            const targetX = baseX + normalizedX * pupilTravelX;
+            const targetY = normalizedY * pupilTravelY;
             pupil.position.x += (targetX - pupil.position.x) * easing;
             pupil.position.y += (targetY - pupil.position.y) * easing;
           }
