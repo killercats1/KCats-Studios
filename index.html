@@ -301,9 +301,14 @@
           mouse.inside = true;
           pointer.classList.add('is-visible');
         }, { passive: true });
-        window.addEventListener('pointerleave', () => {
+        const resetPointer = () => {
           mouse.inside = false;
           pointer.classList.remove('is-visible');
+        };
+        window.addEventListener('pointerleave', resetPointer);
+        window.addEventListener('blur', resetPointer);
+        document.addEventListener('mouseout', (event) => {
+          if (!event.relatedTarget && !event.toElement) resetPointer();
         });
         window.addEventListener('pointerdown', () => {
           pointer.classList.remove('is-clicking');
