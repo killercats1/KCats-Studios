@@ -142,7 +142,6 @@
             if (alpha < 16) continue;
             const dx = x + cell / 2 - centerX;
             const dy = y + cell / 2 - centerY;
-            const length = Math.hypot(dx, dy) || 1;
             const angleJitter = (Math.random() - .5) * .8;
             const angle = Math.atan2(dy, dx) + angleJitter;
             const speed = 35 + Math.random() * 145;
@@ -206,6 +205,11 @@
           if (focusTarget) focusTarget.focus({ preventScroll: true });
           return;
         }
+
+        next.hidden = false;
+        next.setAttribute('aria-hidden', 'true');
+        next.style.zIndex = '0';
+        current.style.zIndex = '1';
 
         try {
           if (typeof window.html2canvas !== 'function') {
