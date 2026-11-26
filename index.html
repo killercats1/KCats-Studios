@@ -352,7 +352,7 @@
         const stage = document.getElementById('cat-stage');
         const scene = new THREE.Scene();
         camera = new THREE.PerspectiveCamera(32, 1, 0.1, 50);
-        camera.position.set(0, 0, 7.7);
+        camera.position.set(0, 0, 10.8);
         renderer = new THREE.WebGLRenderer({
           canvas: voxelCanvas,
           alpha: true,
@@ -372,91 +372,90 @@
         fillLight.position.set(4, -2, 4);
         scene.add(fillLight);
 
-        const cell = 0.17;
+        const cell = 0.24;
         const fur = new THREE.MeshStandardMaterial({ color: 0x111318, roughness: 1, metalness: 0 });
-        const furLight = new THREE.MeshStandardMaterial({ color: 0x2a2d34, roughness: 1, metalness: 0 });
         const white = new THREE.MeshStandardMaterial({ color: 0xf1f1ed, roughness: 1, metalness: 0 });
-        const socket = new THREE.MeshStandardMaterial({ color: 0x260b13, roughness: 1, metalness: 0 });
-        const socketEdge = new THREE.MeshStandardMaterial({ color: 0x43101d, roughness: 1, metalness: 0 });
+        const socket = new THREE.MeshBasicMaterial({ color: 0x260b13 });
         const red = new THREE.MeshStandardMaterial({ color: 0xf01943, emissive: 0x9c001e, emissiveIntensity: 1.2, roughness: 0.55 });
         const redLight = new THREE.MeshStandardMaterial({ color: 0xff526a, emissive: 0xff123e, emissiveIntensity: 1.8, roughness: 0.4 });
         const ink = new THREE.MeshStandardMaterial({ color: 0x07080b, roughness: 1, metalness: 0 });
-        const materials = { fur, furLight, white, socket, socketEdge, red, redLight, ink };
+        const materials = { fur, white, socket, red, redLight, ink };
         const silhouette = [];
         const face = [];
         const pupilGroups = [];
-        const pupilScale = 0.65;
-        const rows = [
-          [10, -8, -7], [9, -9, -7], [8, -10, -6], [7, -10, -5],
-          [6, -10, -4], [5, -10, -3], [4, -9, -3]
+        const frontZ = 3.5;
+        const pupilCubeSize = cell * 0.8;
+        const pupilGeometry = new THREE.BoxGeometry(pupilCubeSize, pupilCubeSize, pupilCubeSize);
+        const eyeSlots = [
+          { centerX: -3, left: -4, right: -2 },
+          { centerX: 4, left: 3, right: 5 }
         ];
-        for (const [y, leftMin, leftMax] of rows) {
-          for (let x = leftMin; x <= leftMax; x++) {
-            addVoxel(silhouette, x, y, 0, 'fur');
-            addVoxel(silhouette, -x, y, 0, 'fur');
+
+        for (let y = -4; y <= 5; y++) {
+          for (let x = -5; x <= 6; x++) {
+            if ((y === -4 || y === 5) && (x === -5 || x === 6)) continue;
+            for (let depth = 0; depth < 8; depth++) {
+              const z = depth - 3.5;
+              const eyeOpening = z === frontZ && eyeSlots.some((eye) =>
+                x >= eye.left && x <= eye.right && (y === 0 || y === 1)
+              );
+              if (!eyeOpening) addVoxel(silhouette, x, y, z, 'fur');
+            }
           }
-        }
-        const headRows = [
-          [4, -7, 7], [3, -8, 8], [2, -9, 9], [1, -10, 10],
-          [0, -11, 11], [-1, -11, 11], [-2, -11, 11], [-3, -11, 11],
-          [-4, -11, 11], [-5, -10, 10], [-6, -9, 9], [-7, -7, 7], [-8, -5, 5]
-        ];
-        for (const [y, left, right] of headRows) {
-          for (let x = left; x <= right; x++) addVoxel(silhouette, x, y, 0, 'fur');
         }
 
-        const leftEar = [[8, -8, -7], [7, -9, -7], [6, -9, -6], [5, -8, -6]];
-        for (const [y, left, right] of leftEar) {
-          for (let x = left; x <= right; x++) {
-            addVoxel(face, x, y, 0.095, 'white');
-            addVoxel(face, -x, y, 0.095, 'white');
+        const leftEarRows = [
+          [6, [-6, -5, -4, -3]],
+          [7, [-6, -5, -4]],
+          [8, [-5, -4]],
+          [9, [-5]]
+        ];
+        const whiteEarCells = new Set(['-5:6', '-4:6', '-5:7', '6:6', '5:6', '6:7']);
+        for (const [y, columns] of leftEarRows) {
+          for (const x of columns) {
+            for (const earX of [x, 1 - x]) {
+              const frontColor = whiteEarCells.has(`${earX}:${y}`) ? 'white' : 'fur';
+              for (const z of [2.5, frontZ]) {
+                addVoxel(face, earX, y, z, z === frontZ ? frontColor : 'fur');
+              }
+            }
           }
-        }
-        for (let x = -3; x <= 3; x++) addVoxel(face, x, 3, 0.095, 'furLight');
-        for (const y of [2, 1, -1, -2]) {
-          addVoxel(face, -10, y, 0.095, 'furLight');
-          addVoxel(face, 10, y, 0.095, 'furLight');
-        }
-        for (const y of [-3, -4]) {
-          for (const x of [-10, -9, 9, 10]) addVoxel(face, x, y, 0.095, 'furLight');
         }
 
-        for (const centerX of [-5, 5]) {
-          for (let y = -2; y <= 2; y++) {
-            for (let x = centerX - 2; x <= centerX + 2; x++) addVoxel(face, x, y, 0.105, 'socket');
+        for (const eye of eyeSlots) {
+          for (const y of [0, 1]) {
+            for (let x = eye.left; x <= eye.right; x++) addVoxel(face, x, y, frontZ, 'socket');
           }
-          for (const offsetX of [-2, -1, 1, 2]) addVoxel(face, centerX + offsetX, 3, 0.105, 'socketEdge');
           const pupil = new THREE.Group();
-          const baseX = centerX * cell;
-          pupil.position.set(baseX, 0, 0.245);
-          pupilGroups.push([pupil, baseX]);
-          const eyePattern = [
-            [-1, 1, 'red'], [0, 1, 'redLight'], [1, 1, 'red'],
-            [-1, 0, 'red'], [0, 0, 'redLight'], [1, 0, 'red'],
-            [-1, -1, 'red'], [0, -1, 'red'], [1, -1, 'red']
-          ];
-          makeVoxelMesh(THREE, pupil, eyePattern.map(([x, y, color]) => ({ x, y, z: 0, color })), materials, cell * pupilScale);
-        }
-
-        for (let y = -3; y >= -5; y--) {
-          const extent = y === -3 ? 2 : 4;
-          for (let x = -extent; x <= extent; x++) {
-            if (x !== 0 || y <= -4) addVoxel(face, x, y, 0.105, 'white');
+          const baseX = eye.centerX * cell;
+          const baseY = 0.5 * cell;
+          pupil.position.set(baseX, baseY, 4.5 * cell);
+          pupilGroups.push([pupil, baseX, baseY]);
+          for (const [offsetY, material] of [[-0.5, red], [0.5, redLight]]) {
+            const cube = new THREE.Mesh(pupilGeometry, material);
+            cube.position.y = offsetY * pupilCubeSize;
+            cube.renderOrder = 10;
+            cube.material.depthTest = false;
+            pupil.add(cube);
           }
         }
-        for (let x = -3; x <= 3; x++) addVoxel(face, x, -6, 0.105, 'white');
-        for (let x = -1; x <= 1; x++) addVoxel(face, x, -2, 0.115, 'white');
-        addVoxel(face, 0, -2, 0.205, 'ink');
-        addVoxel(face, -1, -3, 0.205, 'ink');
-        addVoxel(face, 1, -3, 0.205, 'ink');
-        addVoxel(face, 0, -4, 0.205, 'ink');
-        for (const x of [-2, -1, 1, 2]) addVoxel(face, x, -4, 0.205, 'ink');
-        addVoxel(face, -2, -3, 0.205, 'ink');
-        addVoxel(face, 2, -3, 0.205, 'ink');
+
+        const muzzleRows = [
+          [-4, -1, 2],
+          [-3, -2, 3],
+          [-2, -2, 3],
+          [-1, -1, 2]
+        ];
+        for (const [y, left, right] of muzzleRows) {
+          for (let x = left; x <= right; x++) addVoxel(face, x, y, 4.5, 'white');
+        }
+        addVoxel(face, 0.5, -1, 4.6, 'ink');
         makeVoxelMesh(THREE, scene, silhouette, materials, cell);
         makeVoxelMesh(THREE, scene, face, materials, cell);
 
         head = new THREE.Group();
+        const headBaseY = -2.5 * cell;
+        head.position.set(-0.5 * cell, headBaseY, 0);
         const voxelMeshes = scene.children.filter((child) => child.isInstancedMesh);
         for (const mesh of voxelMeshes) {
           scene.remove(mesh);
@@ -486,12 +485,12 @@
           const normalizedY = mouse.inside ? Math.max(-1, Math.min(1, 1 - mouse.y / Math.max(1, window.innerHeight) * 2)) : 0;
           const easing = 1 - Math.exp(-delta / 150);
           const idle = reduceMotion.matches ? 0 : Math.sin(now / 900) * 0.055;
-          head.position.y += (idle - head.position.y) * easing;
+          head.position.y += (headBaseY + idle - head.position.y) * easing;
           const pupilTravelX = cell * 0.85;
-          const pupilTravelY = cell * 0.7;
-          for (const [pupil, baseX] of pupilGroups) {
+          const pupilTravelY = cell * 0.12;
+          for (const [pupil, baseX, baseY] of pupilGroups) {
             const targetX = baseX + normalizedX * pupilTravelX;
-            const targetY = normalizedY * pupilTravelY;
+            const targetY = baseY + normalizedY * pupilTravelY;
             pupil.position.x += (targetX - pupil.position.x) * easing;
             pupil.position.y += (targetY - pupil.position.y) * easing;
           }
