@@ -7,6 +7,7 @@
   <meta name="description" content="Official website of KCats Studios (kcatsstudios). Creative projects, experiments, games, and digital experiences coming soon.">
   <meta name="robots" content="index, follow">
   <link rel="canonical" href="https://kcatsstudios.dev/">
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%20104%2056%22%3E%0A%20%20%3Cpath%20fill%3D%22%23f4f5f2%22%20d%3D%22M8%203h14v8h7v8h18v-8h7V3h14v15h4v23h-7v8h-8v5H19v-5h-8v-8H4V18h4z%22%2F%3E%0A%20%20%3Cpath%20fill%3D%22%230d1117%22%20d%3D%22M13%2010h7v12h8v8H13zM54%2022h8V10h7v20H54z%22%2F%3E%0A%20%20%3Cpath%20fill%3D%22%2370e1d4%22%20d%3D%22M17%2029h12v7H17zM46%2029h12v7H46z%22%2F%3E%0A%20%20%3Cpath%20fill%3D%22%230d1117%22%20d%3D%22M33%2036h10l-5%205zM35%2042h6v3h-6z%22%2F%3E%0A%20%20%3Cpath%20fill%3D%22none%22%20stroke%3D%22%23f4f5f2%22%20stroke-linecap%3D%22square%22%20stroke-linejoin%3D%22miter%22%20stroke-width%3D%228%22%20d%3D%22M96%2010H76v14h18v14H72%22%2F%3E%0A%3C%2Fsvg%3E">
   <meta property="og:title" content="KCats Studios (kcatsstudios) - Games &amp; Creative Projects">
   <meta property="og:description" content="Official website of KCats Studios (kcatsstudios). Creative projects, experiments, games, and digital experiences coming soon.">
   <meta property="og:type" content="website">
@@ -25,22 +26,38 @@
   }
   </script>
   <style>
-    :root { color-scheme: dark; font-family: system-ui, sans-serif; }
+    :root {
+      color-scheme: dark;
+      font-family: "Avenir Next", Montserrat, system-ui, sans-serif;
+      background: #0d1117;
+      color: #f4f5f2;
+      --accent: #70e1d4;
+      --muted: #a4afb8;
+    }
     * { box-sizing: border-box; }
-    body { margin: 0; min-height: 100vh; display: grid; place-items: center; background: #0b1020; color: #f7f8ff; }
+    body { margin: 0; min-height: 100vh; display: grid; place-items: center; background: #0d1117; color: #f4f5f2; }
     main { width: min(720px, 90vw); padding: 3rem 0; }
-    .badge { color: #9da9ff; letter-spacing: .14em; text-transform: uppercase; font-size: .78rem; font-weight: 700; }
-    h1 { margin: .7rem 0 1rem; font-size: clamp(2.8rem, 9vw, 6rem); line-height: .95; }
-    p { max-width: 560px; color: #b7bfdc; font-size: 1.15rem; line-height: 1.7; }
-    .line { width: 5rem; height: .3rem; margin: 2rem 0; border-radius: 999px; background: linear-gradient(90deg, #7c5cff, #4de1c1); }
-    footer { margin-top: 4rem; color: #7780a3; font-size: .9rem; }
-    footer a { color: inherit; }
+    .badge { color: var(--accent); font-family: ui-monospace, SFMono-Regular, Menlo, monospace; letter-spacing: .12em; text-transform: uppercase; font-size: .76rem; font-weight: 600; }
+    h1 { display: flex; align-items: center; gap: .75rem; margin: .8rem 0 1rem; font-size: clamp(2.5rem, 9vw, 5.5rem); font-weight: 700; letter-spacing: -.055em; line-height: 1; }
+    .brand-mark { width: clamp(2.8rem, 8vw, 4.5rem); height: auto; flex: 0 0 auto; }
+    p { max-width: 560px; color: var(--muted); font-size: 1.1rem; line-height: 1.7; }
+    .line { width: 4.5rem; height: 2px; margin: 2rem 0; background: var(--accent); opacity: .8; }
+    footer { margin-top: 4rem; color: #7d8992; font-size: .9rem; }
+    footer a { color: var(--accent); text-decoration-color: transparent; text-underline-offset: .2em; }
+    footer a:hover { text-decoration-color: currentColor; }
+    @media (max-width: 420px) { h1 { gap: .55rem; } }
   </style>
 </head>
 <body>
   <main>
-    <div class="badge">Official website</div>
-    <h1>KCats Studios</h1>
+    <div class="badge">Indie experiments &amp; tiny games</div>
+    <h1><svg class="brand-mark" aria-hidden="true" focusable="false" viewBox="0 0 104 56">
+  <path fill="#f4f5f2" d="M8 3h14v8h7v8h18v-8h7V3h14v15h4v23h-7v8h-8v5H19v-5h-8v-8H4V18h4z"/>
+  <path fill="#0d1117" d="M13 10h7v12h8v8H13zM54 22h8V10h7v20H54z"/>
+  <path fill="#70e1d4" d="M17 29h12v7H17zM46 29h12v7H46z"/>
+  <path fill="#0d1117" d="M33 36h10l-5 5zM35 42h6v3h-6z"/>
+  <path fill="none" stroke="#f4f5f2" stroke-linecap="square" stroke-linejoin="miter" stroke-width="8" d="M96 10H76v14h18v14H72"/>
+</svg>KCats Studios</h1>
     <div class="line"></div>
     <p>KCats Studios creates creative projects, games, experiments, and digital experiences.</p>
     <footer>Built with curiosity by KCats Studios. <a href="https://github.com/killercats1">GitHub</a></footer>
